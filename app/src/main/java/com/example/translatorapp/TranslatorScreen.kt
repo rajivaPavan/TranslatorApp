@@ -3,6 +3,7 @@ package com.example.translatorapp
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
@@ -30,75 +31,79 @@ fun TranslatorScreen(){
     val headerWeight = 0.08f
     var isShowLanguages by rememberSaveable { mutableStateOf(false)}
 
-    var transition = updateTransition(isShowLanguages)
-
-    val changingHeight: Float by animateFloatAsState(
-        targetValue = if (isShowLanguages) 0.4f else 0.2f,
-        animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing)
-    )
-
-    val bottomPanelHeight by transition.animateFloat(label = "Bottom Panel Height") { increase ->
-        if(increase) 0.4f else 0.2f
+    var transition = updateTransition(isShowLanguages, label = "")
+    val bottomPanelHeight by transition.animateFloat(
+        label = "Bottom Panel Height",
+        transitionSpec = { tween(durationMillis = 300, easing = LinearOutSlowInEasing) }
+    ) { increase ->
+            if(increase) 0.4f else 0.2f
     }
 
-    val middlePanelWeight = 1f - headerWeight - changingHeight
+    val middlePanelWeight = 1f - headerWeight - bottomPanelHeight
 
     fun showLanguages(isShow: Boolean){
         isShowLanguages = isShow
     }
 
     @Composable
-    fun LanguagesPanel(){
-        AnimatedVisibility(
-            visible = !isShowLanguages,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            Column (modifier = Modifier
-                .fillMaxSize()
-                .padding(0.dp),
-                verticalArrangement = Arrangement.SpaceEvenly,
-                horizontalAlignment = Alignment.CenterHorizontally){
-                Text("Translate to",
-                    style = MaterialTheme.typography.h5,
-                    color =  MaterialTheme.colors.contentColorFor(
+    fun SelectLanguage(){
+        Column (modifier = Modifier
+            .fillMaxSize()
+            .padding(0.dp),
+            verticalArrangement = Arrangement.SpaceEvenly,
+            horizontalAlignment = Alignment.CenterHorizontally){
+            Text("Translate to",
+                style = MaterialTheme.typography.h5,
+                color =  MaterialTheme.colors.contentColorFor(
+                    backgroundColor = MaterialTheme.colors.secondary))
+            Button(onClick = { showLanguages(true) },
+                modifier = Modifier.fillMaxWidth(0.8f),
+                shape = RoundedCornerShape(10.dp),
+                elevation = null
+            ) {
+                Text(text="Language", color = Color.Black,
+                    modifier = Modifier.padding(8.dp))
+            }
+        }
+    }
+
+    @Composable
+    fun LanguagesList(){
+        Column(modifier = Modifier
+            .fillMaxSize()){
+            IconButton(onClick = { showLanguages(false) }) {
+                Icon(Icons.Rounded.ArrowBack,
+                    contentDescription = "back",
+                    tint = MaterialTheme.colors.contentColorFor(
                         backgroundColor = MaterialTheme.colors.secondary))
-                Button(onClick = { showLanguages(true) },
-                    modifier = Modifier.fillMaxWidth(0.8f),
-                    shape = RoundedCornerShape(10.dp),
-                    elevation = null
-                ) {
-                    Text(text="Language", color = Color.Black,
-                        modifier = Modifier.padding(8.dp))
+            }
+            val modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            Text("Translate to",
+                modifier = modifier,
+                style = MaterialTheme.typography.h5,
+                color =  MaterialTheme.colors.contentColorFor(
+                    backgroundColor = MaterialTheme.colors.secondary))
+
+            Column(modifier = modifier) {
+                languages.forEach{ language ->
+                    TranslationLanguage(language)
                 }
             }
         }
+    }
+    @Composable
+    fun LanguagesPanel(){
+        AnimatedVisibility(
+            visible = !isShowLanguages,
+            enter = fadeIn() + slideInVertically(initialOffsetY = {it})
+        ) {
+            SelectLanguage()
+        }
         AnimatedVisibility(
             visible = isShowLanguages,
+            exit = fadeOut()+ slideOutHorizontally(targetOffsetX = {-it})
         ) {
-            Column(modifier = Modifier
-                .fillMaxSize()){
-                IconButton(onClick = { showLanguages(false) }) {
-                    Icon(Icons.Rounded.ArrowBack,
-                        contentDescription = "back",
-                        tint = MaterialTheme.colors.contentColorFor(
-                            backgroundColor = MaterialTheme.colors.secondary))
-                }
-                val modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                Text("Translate to",
-                    modifier = modifier,
-                    style = MaterialTheme.typography.h5,
-                    color =  MaterialTheme.colors.contentColorFor(
-                        backgroundColor = MaterialTheme.colors.secondary))
-
-                Column(modifier = modifier) {
-                    languages.forEach{ language ->
-                        TranslationLanguage(language)
-                    }
-                }
-
-
-            }
+            LanguagesList()
         }
     }
 
@@ -111,7 +116,7 @@ fun TranslatorScreen(){
             MainTranslatorPanel()
         }
         Row(modifier = Modifier
-            .weight(changingHeight)
+            .weight(bottomPanelHeight)
         ){
             LanguagesPanel()
         }
@@ -177,12 +182,15 @@ fun MainTranslatorPanel(){
 
 @Composable
 fun TranslationLanguage(language: CustomLanguage){
-    val rowColor = if(language.isSelected)
+    val rowColor = if(language.id == 0)
         MaterialTheme.colors.primary else MaterialTheme.colors.background
     Row(
-        modifier = Modifier.background(color = rowColor,
-                shape = RoundedCornerShape(16.dp)),
+        modifier = Modifier.background(
+            color = rowColor,
+            shape = RoundedCornerShape(16.dp)
+        ).clickable(onClick = {
 
+        }),
     ){
         Text(text = language.name,
             style = MaterialTheme.typography.body2,
@@ -197,12 +205,11 @@ fun TranslationLanguage(language: CustomLanguage){
 
 data class CustomLanguage(
     val id: Int,
-    val name: String,
-    val isSelected: Boolean = false
+    val name: String
 )
 
 val languages = listOf<CustomLanguage>(
-    CustomLanguage(0, "#language1",true),
+    CustomLanguage(0, "#language1"),
     CustomLanguage(1, "#langauge2"),
     CustomLanguage(2, "#langauge3"),
     CustomLanguage(3, "#langauge4")
