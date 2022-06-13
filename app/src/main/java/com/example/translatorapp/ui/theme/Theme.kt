@@ -42,6 +42,7 @@ fun TranslatorAppTheme(
     val systemUiController = rememberSystemUiController()
     val colors = if (darkTheme) DarkColorPalette else LightColorPalette
     systemUiController.setSystemBarsColor(color = colors.secondary)
+    systemUiController.setNavigationBarColor(color = colors.secondary)
 
     MaterialTheme(
         colors = colors,
