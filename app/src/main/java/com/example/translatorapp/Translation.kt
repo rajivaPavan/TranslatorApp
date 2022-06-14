@@ -7,10 +7,9 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -47,6 +46,7 @@ class TranslationScreenViewModel() : ViewModel(){
 
     private var _currentTranslationState : MutableLiveData<TranslationState>
         = MutableLiveData(TranslationState.NotStarted)
+    val currentTranslationState : LiveData<TranslationState> = _currentTranslationState
 
     private var _prevTranslationState : MutableLiveData<TranslationState>
         = MutableLiveData(TranslationState.NotStarted)
@@ -59,8 +59,14 @@ class TranslationScreenViewModel() : ViewModel(){
     }
 
     fun updateTranslationState(state: TranslationState) {
-        _prevTranslationState.value = _currentTranslationState.value
-        _currentTranslationState.value = state
+        if(state == TranslationState.Complete){
+            _prevTranslationState.value = state
+            _currentTranslationState.value = TranslationState.NotStarted
+        }
+        else{
+            _prevTranslationState.value = _currentTranslationState.value
+            _currentTranslationState.value = state
+        }
     }
 
     fun checkCurrentTranslationState(state: TranslationState) : Boolean {
@@ -79,6 +85,8 @@ fun TranslationScreen(
 ){
     val textToTranslate by screenViewModel.textToTranslate.observeAsState("")
     val focusRequester by screenViewModel.focusRequester.observeAsState(FocusRequester())
+    val currentTranslationState by screenViewModel.currentTranslationState
+        .observeAsState(TranslationState.NotStarted)
 
     TranslationScreenContent(
         onBackClick = onBackClick,
@@ -88,7 +96,8 @@ fun TranslationScreen(
         setTextToTranslate = { screenViewModel.setTextToTranslate(it) },
         setTranslationState = { screenViewModel.updateTranslationState(it)},
         checkTranslationState = { screenViewModel.checkCurrentTranslationState(it) },
-        checkPrevTranslationState = { screenViewModel.checkPrevTranslationState(it) }
+        checkPrevTranslationState = { screenViewModel.checkPrevTranslationState(it) },
+        translationState = currentTranslationState
     )
 }
 
@@ -101,7 +110,8 @@ fun TranslationScreenContent(
     setTextToTranslate: (String) -> Unit,
     setTranslationState: (TranslationState) -> Unit,
     checkTranslationState: (TranslationState) -> Boolean,
-    checkPrevTranslationState: (TranslationState) -> Boolean
+    checkPrevTranslationState: (TranslationState) -> Boolean,
+    translationState: TranslationState
 ){
     CompositionLocalProvider(LocalContentColor provides MaterialTheme.colors.onSecondary) {
         Column(modifier = Modifier
@@ -123,7 +133,6 @@ fun TranslationScreenContent(
                     } else if (checkPrevTranslationState(TranslationState.NotStarted)) {
                         // if text is not empty when user has closed keyboard
                         setTranslationState(TranslationState.Complete)
-                        setTranslationState(TranslationState.NotStarted)
                         focusManager.clearFocus()
                     }
                 }
@@ -142,7 +151,7 @@ fun TranslationScreenContent(
             TranslationHeader(
                 onBackClick = onBackClick,
                 showClearButton = { textToTranslate.isNotEmpty()
-                        && checkTranslationState(TranslationState.Ongoing) },
+                        && translationState == TranslationState.Ongoing },
                 onClearClick = { setTextToTranslate("") }
             )
 
@@ -173,7 +182,6 @@ fun TranslationScreenContent(
                         TextField(
                             value = textToTranslate,
                             onValueChange = {
-//                                setTranslationState(TranslationState.Ongoing)
                                 setTextToTranslate(it)
                             },
                             placeholder = {
@@ -202,7 +210,6 @@ fun TranslationScreenContent(
                                 onGo = {
                                     if(textToTranslate.isNotEmpty()){
                                         setTranslationState(TranslationState.Complete)
-                                        setTranslationState(TranslationState.NotStarted)
                                         focusManager.clearFocus()
                                     }
                                 }
@@ -210,7 +217,8 @@ fun TranslationScreenContent(
                         )
                     }
                     if(checkPrevTranslationState(TranslationState.Complete)){
-                        Row(modifier = languageNameModifier,
+                        Row(modifier = languageNameModifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween){
                             Text(
                                 text = targetLanguage.name,

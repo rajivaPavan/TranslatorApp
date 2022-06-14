@@ -68,7 +68,7 @@ fun HomeScreenContent(
     val bottomPanelHeight by transition.animateFloat(
         label = "Bottom Panel Height",
         transitionSpec = { tween(durationMillis = 300, easing = LinearOutSlowInEasing) }
-    ) { increase -> if(increase) 0.4f else 0.2f }
+    ) { increase -> if(increase) 0.45f else 0.2f }
 
     val headerWeight = 0.08f
     val middlePanelWeight = 1f - headerWeight - bottomPanelHeight
