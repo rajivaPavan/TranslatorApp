@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -46,8 +45,11 @@ class TranslationScreenViewModel() : ViewModel(){
     private var _textToTranslate : MutableLiveData<String> = MutableLiveData()
     val textToTranslate: LiveData<String> = _textToTranslate
 
+    private var _translatedText : MutableLiveData<String> = MutableLiveData()
+    val translatedText: LiveData<String> = _translatedText
+
     private var _currentTranslationState : MutableLiveData<TranslationState>
-            = MutableLiveData(TranslationState.NotStarted)
+        = MutableLiveData(TranslationState.NotStarted)
 
     private var _prevTranslationState : MutableLiveData<TranslationState>
             = MutableLiveData(TranslationState.NotStarted)
@@ -71,14 +73,18 @@ class TranslationScreenViewModel() : ViewModel(){
             }
         }
     }
-
     fun checkCurrentTranslationState(state: TranslationState) : Boolean {
         return  _currentTranslationState.value == state
     }
     fun checkPrevTranslationState(state: TranslationState) : Boolean {
         return  _prevTranslationState.value == state
     }
+
+    fun translation(textToTranslate: String,targetLanguage: TargetLanguage){
+        _translatedText.value = Translator.translate(textToTranslate,targetLanguage)
+    }
 }
+
 
 @Composable
 fun TranslationScreen(
@@ -88,16 +94,21 @@ fun TranslationScreen(
 ){
     val textToTranslate by screenViewModel.textToTranslate.observeAsState("")
     val focusRequester by screenViewModel.focusRequester.observeAsState(FocusRequester())
+    val translatedText by screenViewModel.translatedText.observeAsState("")
+
+    //run this process to get the translation real time
+    screenViewModel.translation(textToTranslate,targetLanguage)
 
     TranslationScreenContent(
         onBackClick = onBackClick,
         targetLanguage = targetLanguage,
         textToTranslate = textToTranslate,
+        translatedText = translatedText,
         focusRequester = focusRequester,
         setTextToTranslate = { screenViewModel.setTextToTranslate(it) },
         setTranslationState = { screenViewModel.updateTranslationState(it)},
         checkTranslationState = { screenViewModel.checkCurrentTranslationState(it) },
-        checkPrevTranslationState = { screenViewModel.checkPrevTranslationState(it) },
+        checkPrevTranslationState = { screenViewModel.checkPrevTranslationState(it) }
     )
 }
 
@@ -111,6 +122,7 @@ fun TranslationScreenContent(
     setTranslationState: (TranslationState) -> Unit,
     checkTranslationState: (TranslationState) -> Boolean,
     checkPrevTranslationState: (TranslationState) -> Boolean,
+    translatedText: String,
 ){
     CompositionLocalProvider(LocalContentColor provides MaterialTheme.colors.onSecondary) {
         Column(modifier = Modifier
@@ -240,8 +252,7 @@ fun TranslationScreenContent(
                         TranslatedText(
                             modifier = translationTextModifier,
                             style = translationTextStyle,
-                            textToTranslate = textToTranslate,
-                            targetLanguage = targetLanguage
+                            translatedText = translatedText
                         )
                     }
 
@@ -252,27 +263,12 @@ fun TranslationScreenContent(
     }
 }
 
-class TranslationViewModel():ViewModel(){
-
-}
-
-@Composable
-fun Translation(){
-
-}
-
 @Composable
 fun TranslatedText(
     modifier: Modifier,
     style: TextStyle,
-    textToTranslate: String,
-    targetLanguage: TargetLanguage
+    translatedText: String
 ) {
-    var translatedText by remember { mutableStateOf(textToTranslate) }
-    translatedText = Translator.translate(
-        textToTranslate = textToTranslate,
-        targetLanguage = targetLanguage
-    )
     Text(
         text = translatedText,
         modifier = modifier.padding(8.dp),
