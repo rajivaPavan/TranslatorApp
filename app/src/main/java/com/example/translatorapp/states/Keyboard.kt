@@ -1,4 +1,4 @@
-package com.example.translatorapp.custom
+package com.example.translatorapp.states
 
 import android.graphics.Rect
 import android.view.ViewTreeObserver

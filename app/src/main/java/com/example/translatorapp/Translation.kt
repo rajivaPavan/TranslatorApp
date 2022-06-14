@@ -22,8 +22,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.translatorapp.custom.Keyboard
-import com.example.translatorapp.custom.keyboardAsState
+import com.example.translatorapp.states.Keyboard
+import com.example.translatorapp.states.keyboardAsState
 import com.example.translatorapp.ui.theme.BackButton
 import com.example.translatorapp.ui.theme.ClearButton
 
@@ -39,8 +39,12 @@ class TranslationScreenViewModel() : ViewModel(){
     private var _textToTranslate : MutableLiveData<String> = MutableLiveData()
     val textToTranslate: LiveData<String> = _textToTranslate
 
-    private var _translationState : MutableLiveData<TranslationState> = MutableLiveData()
-    val translationState: LiveData<TranslationState> = _translationState
+    private var _currentTranslationState : MutableLiveData<TranslationState> = MutableLiveData()
+    val currentTranslationState: LiveData<TranslationState> = _currentTranslationState
+
+    private var _prevTranslationState : MutableLiveData<TranslationState>
+        = MutableLiveData(TranslationState.NotStarted)
+    val prevTranslationState: LiveData<TranslationState> = _prevTranslationState
 
     private var _focusRequester : MutableLiveData<FocusRequester> = MutableLiveData()
     val focusRequester: LiveData<FocusRequester> = _focusRequester
@@ -49,12 +53,16 @@ class TranslationScreenViewModel() : ViewModel(){
         _textToTranslate.value = text
     }
 
-    fun setTranslationState(state: TranslationState) {
-        _translationState.value = state
+    fun updateTranslationState(state: TranslationState) {
+        _prevTranslationState.value = _currentTranslationState.value
+        _currentTranslationState.value = state
     }
 
-    fun checkTranslationState(state: TranslationState) : Boolean {
-        return  _translationState.value == state
+    fun checkCurrentTranslationState(state: TranslationState) : Boolean {
+        return  _currentTranslationState.value == state
+    }
+    fun checkPrevTranslationState(state: TranslationState) : Boolean {
+        return  _prevTranslationState.value == state
     }
 }
 
@@ -64,10 +72,9 @@ fun TranslationScreen(
     targetLanguage: TargetLanguage,
     screenViewModel: TranslationScreenViewModel = viewModel()
 ){
-
     val textToTranslate by screenViewModel.textToTranslate.observeAsState("")
     val translationState by
-        screenViewModel.translationState.observeAsState(TranslationState.NotStarted)
+        screenViewModel.currentTranslationState.observeAsState(TranslationState.NotStarted)
     val focusRequester by screenViewModel.focusRequester.observeAsState(FocusRequester())
 
     TranslationScreenContent(
@@ -77,8 +84,8 @@ fun TranslationScreen(
         translationState = translationState,
         focusRequester = focusRequester,
         setTextToTranslate = { screenViewModel.setTextToTranslate(it) },
-        setTranslationState = { screenViewModel.setTranslationState(it)},
-        checkTranslationState = { screenViewModel.checkTranslationState(it) }
+        setTranslationState = { screenViewModel.updateTranslationState(it)},
+        checkTranslationState = { screenViewModel.checkCurrentTranslationState(it) }
     )
 }
 
@@ -98,27 +105,33 @@ fun TranslationScreenContent(
             .background(color = MaterialTheme.colors.secondary)
             .fillMaxSize()
         ){
-            val keyboardState by keyboardAsState()
             LaunchedEffect(Unit) {
+                //open keyboard when screen loads
                 focusRequester.requestFocus()
             }
+            val keyboardState by keyboardAsState()
 
+            //when keyboard is closed
             if(keyboardState == Keyboard.Closed){
-                if(checkTranslationState(TranslationState.Ongoing)
-                    && textToTranslate.isEmpty()
-                ){
-                    setTranslationState(TranslationState.Cancelled)
+                //
+                if(checkTranslationState(TranslationState.Ongoing)){
+                    //if text is empty when user has closed the keyboard
+                    if(textToTranslate.isEmpty()){
+                        setTranslationState(TranslationState.Cancelled)
+                    }
+                    else{
+                        // if text is not empty when user has closed keyboard
+                        setTranslationState(TranslationState.Complete)
+                    }
                 }
-                else if(checkTranslationState(TranslationState.Ongoing)
-                    && textToTranslate.isNotEmpty()){
+            }
+            else{ //when keyboard is opened
 
-                    setTranslationState(TranslationState.Complete)
-                }
-            }else{
                 if(!checkTranslationState(TranslationState.Complete)){
                     setTranslationState(TranslationState.Ongoing)
                 }
             }
+
             if(checkTranslationState(TranslationState.Cancelled)){
                 setTranslationState(TranslationState.NotStarted)
                 onBackClick()
@@ -127,7 +140,7 @@ fun TranslationScreenContent(
             TranslationHeader(
                 onBackClick = onBackClick,
                 showClearButton = { textToTranslate.isNotEmpty()
-                        && translationState == TranslationState.Ongoing },
+                        && checkTranslationState(TranslationState.Ongoing) },
                 onClearClick = { setTextToTranslate("") }
             )
             val languageTextModifier: Modifier = Modifier.padding(8.dp)
@@ -204,9 +217,10 @@ fun TranslationScreenContent(
                     }
                     Row{
                         TranslatedText(
-                            textToTranslate = textToTranslate,
                             modifier = languageTextModifier,
-                            style = languageTextStyle
+                            style = languageTextStyle,
+                            textToTranslate = textToTranslate,
+                            targetLanguage = targetLanguage
                         )
                     }
 
@@ -221,11 +235,13 @@ fun TranslationScreenContent(
 fun TranslatedText(
     modifier: Modifier,
     style: TextStyle,
-    textToTranslate: String
+    textToTranslate: String,
+    targetLanguage: TargetLanguage
 ) {
     var translatedText by remember { mutableStateOf(textToTranslate) }
-    translatedText = Translator.translate(textToTranslate = textToTranslate,
-                            targetLanguage = TargetLanguage(0, "reversed")
+    translatedText = Translator.translate(
+        textToTranslate = textToTranslate,
+        targetLanguage = targetLanguage
    )
     Text(
         text = translatedText,
