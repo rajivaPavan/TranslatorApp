@@ -79,7 +79,10 @@ fun HomeScreenContent(
             TranslatorHeader(onSettingsClick = onSettingsClick)
         }
         Row(modifier = Modifier.weight(middlePanelWeight)){
-            TranslatorPanel(onTranslatorClick)
+            TranslatorPanel(onClick =  {
+                showLanguages(false)
+                onTranslatorClick()
+            })
         }
         Row(modifier = Modifier.weight(bottomPanelHeight)
         ){

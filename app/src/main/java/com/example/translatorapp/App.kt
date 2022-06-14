@@ -60,15 +60,20 @@ fun TranslatorAppContent(
                 onTranslatorClick = { navController.navigate(Screen.Translation.route) }
             )
         }
+        val onBackClick = {
+            if(navController.previousBackStackEntry != null){
+                navController.popBackStack()
+            }
+        }
         composable(route = Screen.Translation.route){
             TranslationScreen(
-                onBackClick = { navController.popBackStack() },
+                onBackClick = onBackClick,
                 targetLanguage = currentTargetLanguage,
             )
         }
         composable(route = Screen.Settings.route){
             TranslatorSettings(
-                onBackClick = { navController.popBackStack() }
+                onBackClick = onBackClick
             )
         }
     }

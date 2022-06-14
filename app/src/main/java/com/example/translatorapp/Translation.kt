@@ -7,6 +7,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
@@ -14,7 +16,10 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -26,6 +31,7 @@ import com.example.translatorapp.states.Keyboard
 import com.example.translatorapp.states.keyboardAsState
 import com.example.translatorapp.ui.theme.BackButton
 import com.example.translatorapp.ui.theme.ClearButton
+import com.example.translatorapp.ui.theme.CopyButton
 
 
 enum class TranslationState{
@@ -39,12 +45,11 @@ class TranslationScreenViewModel() : ViewModel(){
     private var _textToTranslate : MutableLiveData<String> = MutableLiveData()
     val textToTranslate: LiveData<String> = _textToTranslate
 
-    private var _currentTranslationState : MutableLiveData<TranslationState> = MutableLiveData()
-    val currentTranslationState: LiveData<TranslationState> = _currentTranslationState
+    private var _currentTranslationState : MutableLiveData<TranslationState>
+        = MutableLiveData(TranslationState.NotStarted)
 
     private var _prevTranslationState : MutableLiveData<TranslationState>
         = MutableLiveData(TranslationState.NotStarted)
-    val prevTranslationState: LiveData<TranslationState> = _prevTranslationState
 
     private var _focusRequester : MutableLiveData<FocusRequester> = MutableLiveData()
     val focusRequester: LiveData<FocusRequester> = _focusRequester
@@ -73,19 +78,17 @@ fun TranslationScreen(
     screenViewModel: TranslationScreenViewModel = viewModel()
 ){
     val textToTranslate by screenViewModel.textToTranslate.observeAsState("")
-    val translationState by
-        screenViewModel.currentTranslationState.observeAsState(TranslationState.NotStarted)
     val focusRequester by screenViewModel.focusRequester.observeAsState(FocusRequester())
 
     TranslationScreenContent(
         onBackClick = onBackClick,
         targetLanguage = targetLanguage,
         textToTranslate = textToTranslate,
-        translationState = translationState,
         focusRequester = focusRequester,
         setTextToTranslate = { screenViewModel.setTextToTranslate(it) },
         setTranslationState = { screenViewModel.updateTranslationState(it)},
-        checkTranslationState = { screenViewModel.checkCurrentTranslationState(it) }
+        checkTranslationState = { screenViewModel.checkCurrentTranslationState(it) },
+        checkPrevTranslationState = { screenViewModel.checkPrevTranslationState(it) }
     )
 }
 
@@ -94,11 +97,11 @@ fun TranslationScreenContent(
     onBackClick: () -> Unit,
     targetLanguage: TargetLanguage,
     textToTranslate: String,
-    translationState: TranslationState,
     focusRequester: FocusRequester,
     setTextToTranslate: (String) -> Unit,
     setTranslationState: (TranslationState) -> Unit,
-    checkTranslationState: (TranslationState) -> Boolean
+    checkTranslationState: (TranslationState) -> Boolean,
+    checkPrevTranslationState: (TranslationState) -> Boolean
 ){
     CompositionLocalProvider(LocalContentColor provides MaterialTheme.colors.onSecondary) {
         Column(modifier = Modifier
@@ -110,24 +113,23 @@ fun TranslationScreenContent(
                 focusRequester.requestFocus()
             }
             val keyboardState by keyboardAsState()
+            val focusManager = LocalFocusManager.current
 
-            //when keyboard is closed
-            if(keyboardState == Keyboard.Closed){
-                //
-                if(checkTranslationState(TranslationState.Ongoing)){
+            if(keyboardState == Keyboard.Closed) {
+                if (checkTranslationState(TranslationState.Ongoing)) {
                     //if text is empty when user has closed the keyboard
-                    if(textToTranslate.isEmpty()){
+                    if (textToTranslate.isEmpty()) {
                         setTranslationState(TranslationState.Cancelled)
-                    }
-                    else{
+                    } else if (checkPrevTranslationState(TranslationState.NotStarted)) {
                         // if text is not empty when user has closed keyboard
                         setTranslationState(TranslationState.Complete)
+                        setTranslationState(TranslationState.NotStarted)
+                        focusManager.clearFocus()
                     }
                 }
             }
-            else{ //when keyboard is opened
-
-                if(!checkTranslationState(TranslationState.Complete)){
+            else {
+                if(checkTranslationState(TranslationState.NotStarted)){
                     setTranslationState(TranslationState.Ongoing)
                 }
             }
@@ -143,8 +145,9 @@ fun TranslationScreenContent(
                         && checkTranslationState(TranslationState.Ongoing) },
                 onClearClick = { setTextToTranslate("") }
             )
-            val languageTextModifier: Modifier = Modifier.padding(8.dp)
-            val languageTextStyle = MaterialTheme.typography.h4
+
+            val translationTextModifier: Modifier = Modifier.padding(8.dp)
+            val translationTextStyle = MaterialTheme.typography.h4
 
             Row{
                 Column(
@@ -154,22 +157,23 @@ fun TranslationScreenContent(
                         .verticalScroll(rememberScrollState())
                 ) {
 
-                    if(checkTranslationState(TranslationState.Complete)){
-                        Row{
+                    val languageNameModifier = Modifier.padding(8.dp)
+                    val languageNameTextStyle = MaterialTheme.typography.h6
+                    if(checkPrevTranslationState(TranslationState.Complete)){
+                        Row(modifier = languageNameModifier){
                             Text(
                                 text = "English",
-                                modifier = Modifier.padding(4.dp),
-                                style = MaterialTheme.typography.h6
+                                modifier = languageNameModifier,
+                                style = languageNameTextStyle
                             )
                         }
                     }
                     Row{
-                        val focusManager = LocalFocusManager.current
 
                         TextField(
                             value = textToTranslate,
                             onValueChange = {
-                                setTranslationState(TranslationState.Ongoing)
+//                                setTranslationState(TranslationState.Ongoing)
                                 setTextToTranslate(it)
                             },
                             placeholder = {
@@ -182,12 +186,10 @@ fun TranslationScreenContent(
                                 .fillMaxSize()
                                 .focusRequester(focusRequester)
                                 .onFocusEvent {
-                                    if(checkTranslationState(TranslationState.Complete)){
+                                    if (checkTranslationState(TranslationState.Complete)) {
                                         focusManager.clearFocus()
                                     }
-                                }
-
-                            ,
+                                },
                             textStyle = MaterialTheme.typography.h4,
                             colors = TextFieldDefaults.textFieldColors(
                                 textColor = MaterialTheme.colors.onSecondary,
@@ -200,25 +202,31 @@ fun TranslationScreenContent(
                                 onGo = {
                                     if(textToTranslate.isNotEmpty()){
                                         setTranslationState(TranslationState.Complete)
+                                        setTranslationState(TranslationState.NotStarted)
                                         focusManager.clearFocus()
                                     }
                                 }
                             )
                         )
                     }
-                    if(checkTranslationState(TranslationState.Complete)){
-                        Row{
+                    if(checkPrevTranslationState(TranslationState.Complete)){
+                        Row(modifier = languageNameModifier,
+                            horizontalArrangement = Arrangement.SpaceBetween){
                             Text(
                                 text = targetLanguage.name,
-                                modifier = Modifier.padding(4.dp),
-                                style = MaterialTheme.typography.h6
+                                modifier = languageNameModifier,
+                                style = languageNameTextStyle
                             )
+                            val clipboardManager: ClipboardManager = LocalClipboardManager.current
+                            CopyButton(onClick = {
+                                clipboardManager.setText(AnnotatedString("translated text"))
+                            })
                         }
                     }
                     Row{
                         TranslatedText(
-                            modifier = languageTextModifier,
-                            style = languageTextStyle,
+                            modifier = translationTextModifier,
+                            style = translationTextStyle,
                             textToTranslate = textToTranslate,
                             targetLanguage = targetLanguage
                         )
@@ -229,8 +237,17 @@ fun TranslationScreenContent(
 
         }
     }
+}
+
+class TranslationViewModel():ViewModel(){
 
 }
+
+@Composable
+fun Translation(){
+
+}
+
 @Composable
 fun TranslatedText(
     modifier: Modifier,
@@ -245,7 +262,7 @@ fun TranslatedText(
    )
     Text(
         text = translatedText,
-        modifier = modifier,
+        modifier = modifier.padding(8.dp),
         style = style
     )
 }

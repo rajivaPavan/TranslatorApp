@@ -6,6 +6,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
@@ -18,6 +19,20 @@ fun BackButton(
         Icon(
             Icons.Rounded.ArrowBack,
             contentDescription = "back",
+            tint = tint
+        )
+    }
+}
+
+@Composable
+fun CopyButton(
+    onClick: () -> Unit,
+    tint: Color = MaterialTheme.colors.onSecondary
+){
+    IconButton(onClick = onClick) {
+        Icon(
+            Icons.Rounded.ContentCopy,
+            contentDescription = "copy",
             tint = tint
         )
     }
