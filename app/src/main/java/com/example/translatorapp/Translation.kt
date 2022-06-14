@@ -59,13 +59,15 @@ class TranslationScreenViewModel() : ViewModel(){
     }
 
     fun updateTranslationState(state: TranslationState) {
-        if(state == TranslationState.Complete){
-            _prevTranslationState.value = state
-            _currentTranslationState.value = TranslationState.NotStarted
-        }
-        else{
-            _prevTranslationState.value = _currentTranslationState.value
-            _currentTranslationState.value = state
+        if(state != _currentTranslationState.value){
+            if(state == TranslationState.Complete){
+                _prevTranslationState.value = state
+                _currentTranslationState.value = TranslationState.NotStarted
+            }
+            else{
+                _prevTranslationState.value = _currentTranslationState.value
+                _currentTranslationState.value = state
+            }
         }
     }
 
@@ -130,7 +132,8 @@ fun TranslationScreenContent(
                     //if text is empty when user has closed the keyboard
                     if (textToTranslate.isEmpty()) {
                         setTranslationState(TranslationState.Cancelled)
-                    } else if (checkPrevTranslationState(TranslationState.NotStarted)) {
+                    }
+                    else if (checkPrevTranslationState(TranslationState.NotStarted)) {
                         // if text is not empty when user has closed keyboard
                         setTranslationState(TranslationState.Complete)
                         focusManager.clearFocus()
@@ -138,7 +141,12 @@ fun TranslationScreenContent(
                 }
             }
             else {
-                if(checkTranslationState(TranslationState.NotStarted)){
+                if(checkTranslationState(TranslationState.NotStarted)
+                    && textToTranslate.isNotEmpty()
+                    ||
+                    checkPrevTranslationState(TranslationState.NotStarted)
+                    && checkTranslationState(TranslationState.NotStarted)
+                ){
                     setTranslationState(TranslationState.Ongoing)
                 }
             }
