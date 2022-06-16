@@ -10,7 +10,7 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 private val DarkColorPalette = darkColors(
     primary = YellowishOrange,
-    primaryVariant = YellowishOrange,
+    primaryVariant = PaleYellow,
     secondary = DarkGreyOrange,
     onBackground = Color.White,
     onSurface = Color.White,
@@ -20,7 +20,7 @@ private val DarkColorPalette = darkColors(
 
 private val LightColorPalette = lightColors(
     primary = PaleYellow,
-    primaryVariant = PaleYellow,
+    primaryVariant = YellowishOrange,
     secondary = GreyWhite,
     onPrimary = Color.Black,
     onSecondary = Color.Black

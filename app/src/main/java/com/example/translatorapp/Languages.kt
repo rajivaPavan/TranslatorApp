@@ -18,25 +18,13 @@ import com.example.translatorapp.ui.theme.BackButton
 
 
 val targetLanguages = listOf(
+    TargetLanguage.Acronyms,
+    TargetLanguage.ChangingCase,
+    TargetLanguage.Highlighted,
     TargetLanguage.Reversed,
     TargetLanguage.ReversedWords,
-    TargetLanguage.Acronyms,
     TargetLanguage.Symbols,
-    TargetLanguage.ChangingCase,
-    TargetLanguage.Highlighted
 )
-
-//data class TargetLanguage(
-//    val id: Int,
-//    val name: String
-//)
-//
-//val targetLanguages = listOf(
-//    TargetLanguage(0, "#language1"),
-//    TargetLanguage(1, "#langauge2"),
-//    TargetLanguage(2, "#langauge3"),
-//    TargetLanguage(3, "#langauge4")
-//)
 
 val defaultTargetLanguage = targetLanguages[0]
 

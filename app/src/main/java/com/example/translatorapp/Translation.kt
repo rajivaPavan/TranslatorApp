@@ -1,10 +1,13 @@
 package com.example.translatorapp
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -16,13 +19,14 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.*
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -32,6 +36,7 @@ import com.example.translatorapp.states.keyboardAsState
 import com.example.translatorapp.ui.theme.BackButton
 import com.example.translatorapp.ui.theme.ClearButton
 import com.example.translatorapp.ui.theme.CopyButton
+import org.w3c.dom.Text
 
 
 enum class TranslationState{
@@ -56,6 +61,36 @@ class TranslationScreenViewModel() : ViewModel(){
 
     private var _focusRequester : MutableLiveData<FocusRequester> = MutableLiveData()
     val focusRequester: LiveData<FocusRequester> = _focusRequester
+
+    private var _fontSize : MutableLiveData<TextUnit> = MutableLiveData(34.sp)
+    val fontSize: LiveData<TextUnit> = _fontSize
+
+    private var _textToTranslateLength = 0;
+    private var _numberOfLines = 1;
+
+    private val size1 = 34.sp
+    private val size2 = 30.sp
+    private val size3 = 26.sp
+
+    fun setFontSize(numberOfLines: Int) {
+        val size = when (numberOfLines) {
+            1 -> size1
+            2 -> size2
+            else -> size3
+        }
+        val isTextLengthIncreasing = _textToTranslate.value!!.length > _textToTranslateLength
+        val isTextLengthDecreasing = _textToTranslate.value!!.length < _textToTranslateLength
+        val sizeIncreasing = size > _fontSize.value!!
+        val sizeDecreasing = size < _fontSize.value!!
+        val isUpdate = (isTextLengthIncreasing && sizeDecreasing
+                || isTextLengthDecreasing && sizeIncreasing)
+        if(isUpdate)
+        {
+            _numberOfLines = numberOfLines
+            _fontSize.value = size
+        }
+        _textToTranslateLength = _textToTranslate.value!!.length
+    }
 
     fun setTextToTranslate(text:String){
         _textToTranslate.value = text
@@ -95,6 +130,7 @@ fun TranslationScreen(
     val textToTranslate by screenViewModel.textToTranslate.observeAsState("")
     val focusRequester by screenViewModel.focusRequester.observeAsState(FocusRequester())
     val translatedText by screenViewModel.translatedText.observeAsState("")
+    val fontSize by screenViewModel.fontSize.observeAsState(34.sp)
 
     //run this process to get the translation real time
     screenViewModel.translation(textToTranslate,targetLanguage)
@@ -108,7 +144,9 @@ fun TranslationScreen(
         setTextToTranslate = { screenViewModel.setTextToTranslate(it) },
         setTranslationState = { screenViewModel.updateTranslationState(it)},
         checkTranslationState = { screenViewModel.checkCurrentTranslationState(it) },
-        checkPrevTranslationState = { screenViewModel.checkPrevTranslationState(it) }
+        checkPrevTranslationState = { screenViewModel.checkPrevTranslationState(it) },
+        translationTextFontSize = fontSize,
+        setFontSize = { screenViewModel.setFontSize(it) }
     )
 }
 
@@ -123,6 +161,8 @@ fun TranslationScreenContent(
     checkTranslationState: (TranslationState) -> Boolean,
     checkPrevTranslationState: (TranslationState) -> Boolean,
     translatedText: String,
+    translationTextFontSize: TextUnit,
+    setFontSize: (Int)->Unit
 ){
     CompositionLocalProvider(LocalContentColor provides MaterialTheme.colors.onSecondary) {
         Column(modifier = Modifier
@@ -136,6 +176,7 @@ fun TranslationScreenContent(
             val keyboardState by keyboardAsState()
             val focusManager = LocalFocusManager.current
             var isFocusedOnTextField by rememberSaveable { mutableStateOf(false)}
+            var maxLines by remember { mutableStateOf(7) }
 
             if(keyboardState == Keyboard.Closed) {
                 if (checkTranslationState(TranslationState.Ongoing)) {
@@ -195,17 +236,22 @@ fun TranslationScreenContent(
                             )
                         }
                     }
+                    val textLayoutResultState = remember { mutableStateOf<TextLayoutResult?>(null) }
+                    val textLayoutResult = textLayoutResultState.value
+
                     Row{
 
                         TextField(
                             value = textToTranslate,
                             onValueChange = {
                                 setTextToTranslate(it)
+                                setFontSize(textLayoutResult?.lineCount!!)
                             },
+                            maxLines = maxLines,
                             placeholder = {
                                 Text(
                                     text = "Enter text",
-                                    style = MaterialTheme.typography.h4
+                                    style = MaterialTheme.typography.h4,
                                 )
                             },
                             modifier = Modifier
@@ -213,9 +259,9 @@ fun TranslationScreenContent(
                                 .focusRequester(focusRequester)
                                 .onFocusChanged {
                                     isFocusedOnTextField = it.isFocused
-                                }
-                            ,
-                            textStyle = MaterialTheme.typography.h4,
+                                    maxLines = if (it.isFocused) 8 else Int.MAX_VALUE
+                                },
+                            textStyle = TextStyle(fontSize = translationTextFontSize),
                             colors = TextFieldDefaults.textFieldColors(
                                 textColor = MaterialTheme.colors.onSecondary,
                                 backgroundColor = MaterialTheme.colors.secondary,
@@ -233,6 +279,27 @@ fun TranslationScreenContent(
                             )
                         )
                     }
+                    Row(modifier = Modifier.height(8.dp)){
+                        val lineColor = MaterialTheme.colors.primary
+                        Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.25f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Canvas(modifier = Modifier.fillMaxHeight()
+                                .fillMaxWidth(
+                                    if(translatedText.isEmpty())
+                                        0f
+                                    else if (translatedText.isNotEmpty() && isFocusedOnTextField)
+                                        0.2f
+                                    else
+                                        0.3f
+                                ).animateContentSize()
+                            ) {
+                                drawRect(
+                                    color = lineColor
+                                )
+                            }
+                        }
+                    }
                     if(checkPrevTranslationState(TranslationState.Complete)){
                         Row(modifier = languageNameModifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -244,7 +311,7 @@ fun TranslationScreenContent(
                             )
                             val clipboardManager: ClipboardManager = LocalClipboardManager.current
                             CopyButton(onClick = {
-                                clipboardManager.setText(AnnotatedString("translated text"))
+                                clipboardManager.setText(AnnotatedString(translatedText))
                             })
                         }
                     }
@@ -252,7 +319,11 @@ fun TranslationScreenContent(
                         TranslatedText(
                             modifier = translationTextModifier,
                             style = translationTextStyle,
-                            translatedText = translatedText
+                            translatedText = translatedText,
+                            fontSize = translationTextFontSize,
+                            setTextLayoutResult = { layoutResult ->
+                                textLayoutResultState.value = layoutResult
+                            }
                         )
                     }
 
@@ -267,13 +338,20 @@ fun TranslationScreenContent(
 fun TranslatedText(
     modifier: Modifier,
     style: TextStyle,
-    translatedText: String
+    translatedText: String,
+    fontSize: TextUnit,
+    setTextLayoutResult: (TextLayoutResult)->Unit
 ) {
-    Text(
-        text = translatedText,
-        modifier = modifier.padding(8.dp),
-        style = style
-    )
+
+    SelectionContainer {
+        Text(
+            text = translatedText,
+            modifier = modifier.padding(8.dp),
+            style = style,
+            fontSize = fontSize,
+            onTextLayout = setTextLayoutResult
+        )
+    }
 }
 
 @Composable
