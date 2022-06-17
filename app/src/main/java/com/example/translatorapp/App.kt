@@ -2,7 +2,8 @@ package com.example.translatorapp
 
 import androidx.compose.foundation.background
 import androidx.compose.material.MaterialTheme
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.LiveData
@@ -14,12 +15,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
-class TranslatorViewModel() :ViewModel(){
+class TranslatorViewModel() : ViewModel() {
 
     private var _currentTargetLanguage: MutableLiveData<TargetLanguage> = MutableLiveData(
-        defaultTargetLanguage)
-    
-    val currentTargetLanguage : LiveData<TargetLanguage> = _currentTargetLanguage
+        defaultTargetLanguage
+    )
+
+    val currentTargetLanguage: LiveData<TargetLanguage> = _currentTargetLanguage
 
     fun setTargetLanguage(language: TargetLanguage) {
         _currentTargetLanguage.value = language
@@ -27,13 +29,14 @@ class TranslatorViewModel() :ViewModel(){
 }
 
 @Composable
-fun TranslatorApp(viewModel: TranslatorViewModel = viewModel()){
+fun TranslatorApp(viewModel: TranslatorViewModel = viewModel()) {
 
     val currentTargetLanguage by viewModel.currentTargetLanguage.observeAsState(
-        defaultTargetLanguage)
+        defaultTargetLanguage
+    )
 
     val navController = rememberNavController()
-    
+
     TranslatorAppContent(
         currentTargetLanguage = currentTargetLanguage,
         setTargetLanguage = { viewModel.setTargetLanguage(it) },
@@ -46,13 +49,14 @@ fun TranslatorAppContent(
     currentTargetLanguage: TargetLanguage,
     setTargetLanguage: (TargetLanguage) -> Unit,
     navController: NavHostController,
-){
+) {
 
-    NavHost( navController = navController,
+    NavHost(
+        navController = navController,
         startDestination = Screen.Home.route,
         modifier = Modifier.background(color = MaterialTheme.colors.background)
-    ){
-        composable(route = Screen.Home.route){
+    ) {
+        composable(route = Screen.Home.route) {
             HomeScreen(
                 onSettingsClick = { navController.navigate(Screen.Settings.route) },
                 targetLanguage = currentTargetLanguage,
@@ -61,17 +65,17 @@ fun TranslatorAppContent(
             )
         }
         val onBackClick = {
-            if(navController.previousBackStackEntry != null){
+            if (navController.previousBackStackEntry != null) {
                 navController.popBackStack()
             }
         }
-        composable(route = Screen.Translation.route){
+        composable(route = Screen.Translation.route) {
             TranslationScreen(
                 onBackClick = onBackClick,
                 targetLanguage = currentTargetLanguage,
             )
         }
-        composable(route = Screen.Settings.route){
+        composable(route = Screen.Settings.route) {
             TranslatorSettings(
                 onBackClick = onBackClick
             )

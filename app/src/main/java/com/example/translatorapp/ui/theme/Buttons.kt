@@ -12,9 +12,9 @@ import androidx.compose.ui.graphics.Color
 
 @Composable
 fun BackButton(
-    onClick: ()-> Unit,
+    onClick: () -> Unit,
     tint: Color = MaterialTheme.colors.onSecondary
-){
+) {
     IconButton(onClick = onClick) {
         Icon(
             Icons.Rounded.ArrowBack,
@@ -28,7 +28,7 @@ fun BackButton(
 fun CopyButton(
     onClick: () -> Unit,
     tint: Color = MaterialTheme.colors.onSecondary
-){
+) {
     IconButton(onClick = onClick) {
         Icon(
             Icons.Rounded.ContentCopy,

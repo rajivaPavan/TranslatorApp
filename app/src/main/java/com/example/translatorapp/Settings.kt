@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -64,8 +65,9 @@ fun TranslatorSettings(onBackClick: () -> Unit){
                     Switch(checked = tapToTranslate,
                         onCheckedChange = {tapToTranslate = if(!(it&&tapToTranslate)) it else tapToTranslate },
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = MaterialTheme.colors.primaryVariant,
-                            checkedTrackColor = MaterialTheme.colors.primary
+                            checkedThumbColor = MaterialTheme.colors.primary,
+                            checkedTrackColor = MaterialTheme.colors.primaryVariant,
+                            uncheckedThumbColor = Color.White
                         )
                     )
                 }

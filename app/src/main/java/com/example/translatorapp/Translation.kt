@@ -23,7 +23,10 @@ import androidx.compose.ui.platform.*
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -226,14 +229,23 @@ fun TranslationScreenContent(
                 ) {
 
                     val languageNameModifier = Modifier.padding(8.dp)
-                    val languageNameTextStyle = MaterialTheme.typography.h6
+                    val languageNameTextStyle = TextStyle(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Normal
+                    )
                     if(checkPrevTranslationState(TranslationState.Complete)){
-                        Row(modifier = languageNameModifier){
+                        Row(modifier = languageNameModifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween){
                             Text(
                                 text = "English",
                                 modifier = languageNameModifier,
                                 style = languageNameTextStyle
                             )
+                            val clipboardManager: ClipboardManager = LocalClipboardManager.current
+                            CopyButton(onClick = {
+                                clipboardManager.setText(AnnotatedString(textToTranslate))
+                            })
                         }
                     }
                     val textLayoutResultState = remember { mutableStateOf<TextLayoutResult?>(null) }
@@ -268,7 +280,10 @@ fun TranslationScreenContent(
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent
                             ),
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                            keyboardOptions = KeyboardOptions(
+                                capitalization = KeyboardCapitalization.Sentences,
+                                imeAction = ImeAction.Go
+                            ),
                             keyboardActions = KeyboardActions(
                                 onGo = {
                                     if(textToTranslate.isNotEmpty()){
@@ -279,9 +294,16 @@ fun TranslationScreenContent(
                             )
                         )
                     }
-                    Row(modifier = Modifier.height(8.dp)){
+                    Row(modifier = Modifier.height(
+                        if (translatedText.isNotEmpty() && isFocusedOnTextField)
+                            20.dp
+                        else
+                            40.dp
+                        ).animateContentSize(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ){
                         val lineColor = MaterialTheme.colors.primary
-                        Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.25f),
+                        Column(modifier = Modifier.fillMaxWidth().height(2.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Canvas(modifier = Modifier.fillMaxHeight()

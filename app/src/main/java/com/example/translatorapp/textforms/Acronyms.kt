@@ -16,7 +16,7 @@ private fun getAcronymsFromFile(): Map<String, String> {
 private val acronyms:Map<String,String> = getAcronymsFromFile()
 
 fun replaceWordIfAcronym(word:String):String{
-    val phrase = acronyms.get(word)
+    val phrase = acronyms.get(word.lowercase())
     return if(!phrase.isNullOrEmpty()){
         val words = phrase.split(" ")
         word +" "+ words.subList(1, words.size).joinToString(" ")

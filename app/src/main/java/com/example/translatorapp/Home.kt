@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountBox
+import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -116,7 +118,7 @@ fun TranslatorHeader(onSettingsClick: ()-> Unit){
         Column(modifier = Modifier.weight(0.15f),
             horizontalAlignment = Alignment.End) {
             IconButton(onClick = onSettingsClick) {
-                Icon(Icons.Rounded.Settings,
+                Icon(Icons.Rounded.Menu,
                     contentDescription = "settings",
                     tint = MaterialTheme.colors.onSecondary
                 )

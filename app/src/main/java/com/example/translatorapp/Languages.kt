@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.translatorapp.ui.theme.BackButton
 
 
@@ -41,7 +42,10 @@ fun SelectLanguage(
         horizontalAlignment = Alignment.CenterHorizontally
     ){
         Text("Translate to",
-            style = MaterialTheme.typography.h6,
+            style = TextStyle(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium
+            ),
             color =  MaterialTheme.colors.onSecondary
         )
         SelectedLanguageButton(selectedLanguage, onBtnClick)
@@ -61,7 +65,10 @@ fun SelectedLanguageButton(
     ) {
         Text(
             text=selectedLanguage,
-            style = MaterialTheme.typography.h5,
+            style = TextStyle(
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Normal
+            ),
             modifier = Modifier.padding(8.dp))
     }
 }
